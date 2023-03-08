@@ -1,5 +1,22 @@
-FROM passsy/flutterw:base-latest
+FROM archlinux
+WORKDIR /app
+RUN pacman --noconfirm -Syu
+ARG FIREBASE_KEY
+ARG FIREBASE_MESSAGING
+ARG FIREBASE_STORAGE
+ARG FIREBASE_APPID
+ARG FIREBASE_AUTH
+ARG FIREBASE_ID
+ENV FIREBASE_KEY=$FIREBASE_KEY
+ENV FIREBASE_MESSAGING=$FIREBASE_MESSAGING
+ENV FIREBASE_STORAGE=$FIREBASE_STORAGE
+ENV FIREBASE_APPID=$FIREBASE_APPID
+ENV FIREBASE_AUTH=$FIREBASE_AUTH
+ENV FIREBASE_ID=$FIREBASE_ID
 COPY . .
+RUN pacman --noconfirm -S nodejs npm git base-devel unzip
+RUN npm i -g pnpm
 RUN ./flutterw config --no-analytics
-ENTRYPOINT ./flutterw run --release --web-port=80 --web-hostname 0.0.0.0 -d web-server
+RUN cd api && pnpm i && pnpm run build
+ENTRYPOINT PORT=80 node /app/api/build/index.js
 EXPOSE 80

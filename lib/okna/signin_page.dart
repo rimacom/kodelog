@@ -9,23 +9,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-/*
-        Copyright (C) 2022 Matyáš Caras a Richard Pavlikán
-
-        This program is free software: you can redistribute it and/or modify
-        it under the terms of the GNU Affero General Public License as
-        published by the Free Software Foundation, either version 3 of the
-        License, or (at your option) any later version.
-
-        This program is distributed in the hope that it will be useful,
-        but WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-        GNU Affero General Public License for more details.
-
-        You should have received a copy of the GNU Affero General Public License
-        along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
 
@@ -34,8 +17,10 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
-  bool showSignIn = true;
   bool isLoading = true;
+  bool isSignInWidget = true;
+  bool showEmailPage = true;
+  String oldDocId = "";
 
   TextEditingController emailCon = TextEditingController();
   TextEditingController passwordCon = TextEditingController();
@@ -70,7 +55,7 @@ class _SignInPageState extends State<SignInPage> {
           : Stack(
               children: [
                 Center(
-                  child: showSignIn ? signInWidget() : registerWidget(),
+                  child: isSignInWidget ? signInWidget() : registerWidget(),
                 ),
                 Positioned(
                   bottom: 10,
@@ -79,7 +64,7 @@ class _SignInPageState extends State<SignInPage> {
                     onPressed: () => showAboutDialog(
                         context: context,
                         applicationName: "Kodelog",
-                        applicationVersion: "1.1.0",
+                        applicationVersion: "2.0.1",
                         applicationLegalese:
                             "©️ 2023 Matyáš Caras a Richard Pavlikán,\n vydáno pod licencí AGPLv3",
                         children: [
@@ -121,7 +106,7 @@ class _SignInPageState extends State<SignInPage> {
             SizedBox(
               width: (Device.screenType == ScreenType.mobile) ? 60.w : 30.w,
               child: TextFormField(
-                decoration: Vzhled.inputDecoration("E-mail"),
+                decoration: Vzhled.inputDecoration("E-mail nebo Username"),
                 cursorColor: Vzhled.textColor,
                 keyboardType: TextInputType.emailAddress,
                 autocorrect: false,
@@ -134,9 +119,6 @@ class _SignInPageState extends State<SignInPage> {
                 validator: (value) {
                   if (value!.trim().isEmpty) {
                     return "Toto pole je povinné!";
-                  } else if (!RegExp(r'[\w\.]+@[a-z0-9]+\.[a-z]{1,3}')
-                      .hasMatch(value)) {
-                    return "Neplatný e-mail!";
                   }
                   return null;
                 },
@@ -188,11 +170,15 @@ class _SignInPageState extends State<SignInPage> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  showSignIn = false;
+                  isSignInWidget = false;
+                  showEmailPage = true;
                 });
               },
-              child: const Text("Registrovat se", style: Vzhled.textBtn),
-            )
+              child: const Text(
+                "Přihlašuji se poprvé",
+                style: Vzhled.textBtn,
+              ),
+            ),
           ],
         ),
       ),
@@ -201,7 +187,9 @@ class _SignInPageState extends State<SignInPage> {
 
   Widget registerWidget() {
     GlobalKey<FormState> form = GlobalKey<FormState>();
+
     return MyContainer(
+      height: 70.h,
       width: (Device.screenType == ScreenType.mobile) ? 80.w : 40.w,
       child: Form(
         key: form,
@@ -216,119 +204,142 @@ class _SignInPageState extends State<SignInPage> {
             const SizedBox(
               height: 30,
             ),
-            SizedBox(
-              width: (Device.screenType == ScreenType.mobile) ? 60.w : 30.w,
-              child: TextFormField(
-                decoration: Vzhled.inputDecoration("Jméno"),
-                cursorColor: Vzhled.textColor,
-                controller: nameCon,
-                onFieldSubmitted: (_) {
-                  if (form.currentState!.validate()) {
-                    signUp();
-                  }
-                },
-                validator: (value) {
-                  if (value!.trim().isEmpty) {
-                    return "Toto pole je povinné!";
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            SizedBox(
-              width: (Device.screenType == ScreenType.mobile) ? 60.w : 30.w,
-              child: TextFormField(
-                decoration: Vzhled.inputDecoration("E-mail"),
-                cursorColor: Vzhled.textColor,
-                controller: emailCon,
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-                onFieldSubmitted: (_) {
-                  if (form.currentState!.validate()) {
-                    signUp();
-                  }
-                },
-                validator: (value) {
-                  if (value!.trim().isEmpty) {
-                    return "Toto pole je povinné!";
-                  } else if (!RegExp(r'[\w\.]+@[a-z0-9]+\.[a-z]{1,3}')
-                      .hasMatch(value)) {
-                    return "Neplatný e-mail!";
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            SizedBox(
-              width: (Device.screenType == ScreenType.mobile) ? 60.w : 30.w,
-              child: TextFormField(
-                decoration: Vzhled.inputDecoration("Heslo"),
-                cursorColor: Vzhled.textColor,
-                obscureText: true,
-                controller: passwordCon,
-                onFieldSubmitted: (_) {
-                  if (form.currentState!.validate()) {
-                    signUp();
-                  }
-                },
-                validator: (value) {
-                  if (value!.trim().isEmpty) {
-                    return "Toto pole je povinné!";
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Oblíbený jazyk:",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+            showEmailPage
+                ? SizedBox(
+                    width:
+                        (Device.screenType == ScreenType.mobile) ? 60.w : 30.w,
+                    child: TextFormField(
+                      decoration: Vzhled.inputDecoration("Váš e-mail"),
+                      cursorColor: Vzhled.textColor,
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                      controller: emailCon,
+                      validator: (value) {
+                        if (value!.trim().isEmpty) {
+                          return "Toto pole je povinné!";
+                        }
+                        return null;
+                      },
+                    ),
+                  )
+                : SizedBox(
+                    width:
+                        (Device.screenType == ScreenType.mobile) ? 60.w : 30.w,
+                    child: TextFormField(
+                      decoration: Vzhled.inputDecoration("Váš nové heslo"),
+                      cursorColor: Vzhled.textColor,
+                      autocorrect: false,
+                      obscureText: true,
+                      controller: passwordCon,
+                      validator: (value) {
+                        if (value!.trim().isEmpty) {
+                          return "Toto pole je povinné!";
+                        }
+                        return null;
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 5),
-                DropdownButton(
-                  value: jazyk,
-                  dropdownColor: Vzhled.backgroundColor,
-                  items: jazyky
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e["jazyk"],
-                          child: Text(e["jazyk"]),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      jazyk = (value as String?)!;
-                    });
-                  },
-                ),
-              ],
-            ),
             const SizedBox(
               height: 20,
             ),
-            OutlinedButton(
-              style: Vzhled.orangeCudlik,
-              onPressed: () async {
-                if (form.currentState!.validate()) {
-                  signUp();
-                }
-              },
-              child: const Text("Registrovat se"),
-            ),
+            showEmailPage
+                ? OutlinedButton(
+                    style: Vzhled.orangeCudlik,
+                    onPressed: () async {
+                      if (form.currentState!.validate()) {
+                        var emailRef = await FirebaseFirestore.instance
+                            .collection("users")
+                            .where("email", isEqualTo: emailCon.text)
+                            .get();
+
+                        if (emailRef.docs.isEmpty) {
+                          // ignore: use_build_context_synchronously
+                          showDialog(
+                            context: context,
+                            builder: (c) => const AlertDialog(
+                              title: Text("Chyba"),
+                              content: Text(
+                                  "Účet s tímto emailem neexistuje. Pro přístup do aplikace musí váš email přidat admin aplikace."),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() {
+                          oldDocId = emailRef.docs.first.id;
+                          showEmailPage = false;
+                        });
+                      }
+                    },
+                    child: const Text("Pokračovat"),
+                  )
+                : OutlinedButton(
+                    onPressed: () async {
+                      if (form.currentState!.validate()) {
+                        await FirebaseAuth.instance
+                            .createUserWithEmailAndPassword(
+                                email: emailCon.text,
+                                password: passwordCon.text)
+                            .then((value) async {
+                          await FirebaseFirestore.instance
+                              .collection("users")
+                              .doc(oldDocId)
+                              .get()
+                              .then((value) {
+                            FirebaseFirestore.instance
+                                .collection("users")
+                                .doc(FirebaseAuth.instance.currentUser!.uid)
+                                .set({
+                              "name": value["name"],
+                              "favourite": value["favourite"],
+                              "isAdmin": value["isAdmin"],
+                              "username": value["username"],
+                              "email": value["email"],
+                            });
+                          }).then((value) {
+                            FirebaseFirestore.instance
+                                .collection("users")
+                                .doc(oldDocId)
+                                .delete();
+                          });
+
+                          // ignore: use_build_context_synchronously
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HlavniOkno(),
+                            ),
+                          );
+                        }).onError((e, st) {
+                          if (e
+                              .toString()
+                              .contains("firebase_auth/email-already-in-use")) {
+                            showDialog(
+                              context: context,
+                              builder: (c) => const AlertDialog(
+                                title: Text("Chyba"),
+                                content: Text(
+                                    "Váš účet už existuje, prosím přihlaste se"),
+                              ),
+                            );
+                          } else if (e
+                              .toString()
+                              .contains("firebase_auth/wrong-password")) {
+                            showDialog(
+                              context: context,
+                              builder: (c) => const AlertDialog(
+                                title: Text("Chyba"),
+                                content: Text("Zadáváte špatné heslo!"),
+                              ),
+                            );
+                          }
+
+                          return;
+                        });
+                      }
+                    },
+                    style: Vzhled.orangeCudlik,
+                    child: const Text("Pokračovat")),
             const SizedBox(
               height: 10,
             ),
@@ -339,21 +350,54 @@ class _SignInPageState extends State<SignInPage> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  showSignIn = true;
+                  isSignInWidget = true;
                 });
               },
-              child: const Text("Přihlásit se", style: Vzhled.textBtn),
-            )
+              child: const Text(
+                "Účet mám vytvořen, chci se přihlásit",
+                style: Vzhled.textBtn,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  void signIn() {
+  void signIn() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    String email = emailCon.text;
+
+    if (!emailCon.text.contains("@")) {
+      var usernameRef = await FirebaseFirestore.instance
+          .collection("users")
+          .where("username", isEqualTo: emailCon.text)
+          .get();
+
+      if (usernameRef.docs.isEmpty) {
+        // ignore: use_build_context_synchronously
+        showDialog(
+          context: context,
+          builder: (c) => const AlertDialog(
+            title: Text("Chyba"),
+            content: Text("Účet s tímto jménem neexistuje"),
+          ),
+        );
+
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      email = usernameRef.docs.single.data()["email"];
+    }
+
     FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-            email: emailCon.text, password: passwordCon.text)
+        .signInWithEmailAndPassword(email: email, password: passwordCon.text)
         .then(
           (value) => Navigator.pushReplacement(
             context,
@@ -388,49 +432,11 @@ class _SignInPageState extends State<SignInPage> {
         debugPrint(e.toString());
       }
     });
-  }
 
-  void signUp() {
-    FirebaseAuth.instance
-        .createUserWithEmailAndPassword(
-            email: emailCon.text, password: passwordCon.text)
-        .then(
-      (value) async {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .set({
-          "name": nameCon.text,
-          "email": emailCon.text,
-          "favourite": jazyk,
-        });
-        value.user?.updateDisplayName(nameCon.text);
-
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (c) => const HlavniOkno()),
-        );
-      },
-    ).onError((error, stackTrace) {
-      if (error.toString().contains("firebase_auth/email-already-in-use")) {
-        showDialog(
-          context: context,
-          builder: (c) => const AlertDialog(
-            title: Text("Chyba"),
-            content: Text("E-mail je již zaregistrovaný"),
-          ),
-        );
-      } else {
-        showDialog(
-          context: context,
-          builder: (c) => const AlertDialog(
-            title: Text("Chyba"),
-            content: Text("Nastala neznámá chyba."),
-          ),
-        );
-        debugPrint(error.toString());
-      }
-    });
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 }

@@ -19,7 +19,7 @@ Vydáno pod licencí AGPL verze 3
 1. Clone
 2. Build
 
-## Obrázky
+## Obrázky (verze 1.x)
 ![Screenshot přihlašovací obrazovky](images/01.png)
 ![Screenshot přihlašovací obrazovky](images/02.png)
 ![Screenshot přihlašovací obrazovky](images/03.png)

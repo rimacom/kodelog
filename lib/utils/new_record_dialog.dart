@@ -1,12 +1,12 @@
 import 'package:denikprogramatora/okna/app.dart';
-import 'package:denikprogramatora/utils/datum.dart';
+import 'package:denikprogramatora/utils/datum_cas.dart';
 import 'package:denikprogramatora/utils/devicecontainer.dart';
 import 'package:denikprogramatora/utils/dokument.dart';
 import 'package:denikprogramatora/utils/loading_widget.dart';
 import 'package:denikprogramatora/utils/programmer.dart';
 import 'package:denikprogramatora/utils/really_delete.dart';
 import 'package:denikprogramatora/utils/vzhled.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:duration_picker/duration_picker.dart';
 import 'package:fleather/fleather.dart';
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -15,37 +15,33 @@ import 'package:uuid/uuid.dart';
 import '../utils/my_category.dart';
 
 Future<void> showCreateItemDialog(context,
-    {DateTime? from,
-    DateTime? to,
+    {DateTime? originDate,
+    Duration? timeSpent,
     String? j,
     int hvezdicky = 0,
     String? p,
     List<MyCategory>? k,
     String? originalId,
     ParchmentDocument? doc}) async {
-  DateTime fromDate = from ??
+  DateTime date = originDate ??
       DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day,
           DateTime.now().hour - 1);
-  DateTime toDate = to ??
-      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day,
-          DateTime.now().hour);
 
   // nastavení jazyka na oblíbený jazyk
   String jazyk = "C#";
   if (j == null) {
     await ref.get().then((value) {
-      jazyk = value["favourite"];
+      jazyk = value["favourite"] ?? "Dart";
     });
   } else {
     jazyk = j;
   }
 
+  timeSpent = timeSpent ?? const Duration(hours: 0, minutes: 0);
+
   int review = hvezdicky;
 
-  Programmer programmer = p == null
-      ? Programmer(name, userUid)
-      : await Programmer.ziskatProgramatora(
-          FirebaseAuth.instance.currentUser!, p);
+  Programmer programmer = Programmer(name, "pK8iCAtMFiUUhK9FJd6HpWdwA3I3");
 
   List<MyCategory> categories = k ?? [];
 
@@ -83,39 +79,25 @@ Future<void> showCreateItemDialog(context,
                         const SizedBox(height: 15),
                         Row(
                           children: [
-                            Text("Od ${toDate.dateTimeString}"),
+                            Text(
+                                "Datum ${date.day}. ${date.month}. ${date.year}"),
                             const SizedBox(width: 15),
                             TextButton(
                               onPressed: () {
                                 showDatePicker(
                                         context: context,
-                                        initialDate: fromDate,
+                                        initialDate: date,
                                         firstDate:
                                             DateTime(DateTime.now().year - 5),
                                         lastDate:
                                             DateTime(DateTime.now().year + 5))
                                     .then((value) {
-                                  showTimePicker(
-                                          context: context,
-                                          initialTime:
-                                              TimeOfDay.fromDateTime(fromDate))
-                                      .then((time) {
-                                    if (value!.day == toDate.day &&
-                                        value.month == toDate.month &&
-                                        value.year == toDate.year &&
-                                        (time!.hour > toDate.hour ||
-                                            (time.hour <= toDate.hour &&
-                                                time.minute > toDate.minute))) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      fromDate = DateTime(
-                                          value.year,
-                                          value.month,
-                                          value.day,
-                                          time!.hour,
-                                          time.minute);
-                                    });
+                                  setState(() {
+                                    date = DateTime(
+                                      value!.year,
+                                      value.month,
+                                      value.day,
+                                    );
                                   });
                                 });
                               },
@@ -126,88 +108,44 @@ Future<void> showCreateItemDialog(context,
                             )
                           ],
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 30),
                         Row(
                           children: [
-                            Text("Do ${toDate.dateTimeString}"),
+                            Text(
+                                "Strávený čas ${timeSpent!.inHours} hodin ${timeSpent!.inMinutes - timeSpent!.inHours * 60} minut"),
                             const SizedBox(width: 15),
                             TextButton(
-                              onPressed: () {
-                                showDatePicker(
+                              onPressed: () async {
+                                await showDurationPicker(
                                         context: context,
-                                        initialDate: toDate,
-                                        firstDate:
-                                            DateTime(DateTime.now().year - 5),
-                                        lastDate:
-                                            DateTime(DateTime.now().year + 5))
-                                    .then((value) {
-                                  showTimePicker(
+                                        baseUnit: BaseUnit.hour,
+                                        initialTime:
+                                            timeSpent ?? const Duration())
+                                    .then((hours) {
+                                  showDurationPicker(
                                           context: context,
-                                          initialTime:
-                                              TimeOfDay.fromDateTime(toDate))
-                                      .then((time) {
-                                    if (value!.day == fromDate.day &&
-                                        value.month == fromDate.month &&
-                                        value.year == fromDate.year &&
-                                        (time!.hour < fromDate.hour ||
-                                            (time.hour >= fromDate.hour &&
-                                                time.minute <
-                                                    fromDate.minute))) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      toDate = DateTime(value.year, value.month,
-                                          value.day, time!.hour, time.minute);
-                                    });
-                                  });
+                                          baseUnit: BaseUnit.minute,
+                                          initialTime: Duration(
+                                              minutes: (timeSpent ??
+                                                          const Duration())
+                                                      .inMinutes -
+                                                  (timeSpent ??
+                                                              const Duration())
+                                                          .inHours *
+                                                      60))
+                                      .then((minutes) => setState(() {
+                                            timeSpent = Duration(
+                                                hours: hours!.inHours,
+                                                minutes: minutes!.inMinutes);
+                                          }));
                                 });
                               },
                               child: const Text(
-                                ("Změnit"),
+                                "Změnit",
                                 style: Vzhled.textBtn,
                               ),
                             )
                           ],
-                        ),
-                        const SizedBox(height: 30),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Strávený čas",
-                            style: Vzhled.nadpis,
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                              "${toDate.difference(fromDate).inHours} ${toDate.difference(fromDate).inHours == 1 ? "hodina" : toDate.difference(fromDate).inHours > 1 && toDate.difference(fromDate).inHours < 5 ? "hodiny" : "hodin"}${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60 == 0) ? "" : " a ${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60)} ${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) == 1 ? "minuta" : (toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) > 1 && (toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) < 5 ? "minuty" : "minut"}"}"),
-                        ),
-                        const SizedBox(height: 30),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Programátor",
-                            style: Vzhled.nadpis,
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            onPressed: () async {
-                              await showProgrammersDialog(context, doc: doc)
-                                  .then((value) {
-                                setState(() {
-                                  programmer = value;
-                                });
-                              });
-                            },
-                            child: Text(
-                              programmer.name,
-                              style: Vzhled.textBtn,
-                            ),
-                          ),
                         ),
                       ],
                     ),
@@ -350,35 +288,33 @@ Future<void> showCreateItemDialog(context,
                 onPressed: () {
                   if (originalId == null) {
                     ref.collection("records").add({
-                      "fromDate": fromDate,
-                      "toDate": toDate,
-                      "codingTime":
-                          "${toDate.difference(fromDate).inHours} ${toDate.difference(fromDate).inHours == 1 ? "hodina" : toDate.difference(fromDate).inHours > 1 && toDate.difference(fromDate).inHours < 5 ? "hodiny" : "hodin"}${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60 == 0) ? "" : " a ${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60)} ${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) == 1 ? "minuta" : (toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) > 1 && (toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) < 5 ? "minuty" : "minut"}"}",
+                      "date": DateTime(date.year, date.month, date.day),
+                      "time_spent": timeSpent!.durationText,
+                      "time_spentRaw": timeSpent!.inSeconds,
                       "programmer": programmer.id,
-                      "programmerName": programmer.name,
-                      "language": jazyky
+                      "programming_language": jazyky
                           .where((element) => element["jazyk"] == jazyk)
                           .toList()[0],
-                      "review": review,
+                      "rating": review,
                       "categories": categories.map((e) => e.id).toList(),
                       "description": controller.document.toActualJson(),
+                      "descriptionRaw": controller.document.toPlainText()
                     }).then((value) =>
                         Navigator.of(context, rootNavigator: true)
                             .pop("dialog"));
                     return;
                   }
                   ref.collection("records").doc(originalId).update({
-                    "fromDate": fromDate,
-                    "toDate": toDate,
-                    "codingTime":
-                        "${toDate.difference(fromDate).inHours} ${toDate.difference(fromDate).inHours == 1 ? "hodina" : toDate.difference(fromDate).inHours > 1 && toDate.difference(fromDate).inHours < 5 ? "hodiny" : "hodin"}${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60 == 0) ? "" : " a ${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60)} ${(toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) == 1 ? "minuta" : (toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) > 1 && (toDate.difference(fromDate).inMinutes - toDate.difference(fromDate).inHours * 60) < 5 ? "minuty" : "minut"}"}",
+                    "date": DateTime(date.year, date.month, date.day),
+                    "time_spentRaw": timeSpent!.inSeconds,
+                    "time_spent": timeSpent!.durationText,
                     "programmer": programmer.id,
-                    "programmerName": programmer.name,
-                    "language": jazyky
+                    "programming_language": jazyky
                         .where((element) => element["jazyk"] == jazyk)
                         .toList()[0],
-                    "review": review,
+                    "rating": review,
                     "categories": categories.map((e) => e.id).toList(),
+                    "descriptionRaw": controller.document.toPlainText(),
                     "description": controller.document.toActualJson(),
                   }).then((value) =>
                       Navigator.of(context, rootNavigator: true).pop("dialog"));
@@ -396,277 +332,6 @@ Future<void> showCreateItemDialog(context,
       ),
     ),
   );
-}
-
-Future<Programmer> showProgrammersDialog(context,
-    {ParchmentDocument? doc, bool jenMenit = false}) async {
-  bool showAddProgrammer = false;
-  bool editing = false;
-  GlobalKey<FormState> key = GlobalKey<FormState>();
-  TextEditingController nameCon = TextEditingController();
-  late String editId;
-
-  Programmer programmer = Programmer(name, userUid);
-
-  await showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text("Programátoři", style: Vzhled.velkyText),
-      scrollable: true,
-      content: SizedBox(
-        width: 50.w,
-        child: StatefulBuilder(
-          builder: (context, setState) {
-            return showAddProgrammer
-                ? Form(
-                    key: key,
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: nameCon,
-                                decoration: Vzhled.inputDecoration("Jméno"),
-                                validator: (value) {
-                                  if (value!.trim().isEmpty) {
-                                    return "Toto pole je povinné!";
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            TextButton(
-                              onPressed: () {
-                                if (key.currentState!.validate()) {
-                                  if (editing) {
-                                    ref
-                                        .collection("programmers")
-                                        .doc(editId)
-                                        .update({"name": nameCon.text});
-                                  } else {
-                                    var uuid = const Uuid();
-                                    String id = uuid.v1();
-
-                                    ref
-                                        .collection("programmers")
-                                        .doc(id)
-                                        .set({"name": nameCon.text, "id": id});
-                                  }
-                                  nameCon.text = "";
-
-                                  setState(() {
-                                    editing = false;
-                                    showAddProgrammer = false;
-                                  });
-                                }
-                              },
-                              child: Text(
-                                editing ? "Uložit" : "Přidat",
-                                style: Vzhled.textBtn,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              showAddProgrammer = false;
-                            });
-                          },
-                          child: const Text(
-                            "Zpátky",
-                            style: Vzhled.textBtn,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Column(
-                    children: [
-                      Material(
-                        color: Vzhled.dialogColor,
-                        child: InkWell(
-                          splashColor: (jenMenit) ? Colors.transparent : null,
-                          onTap: () {
-                            if (jenMenit) return;
-                            programmer = Programmer(name, userUid);
-                            Navigator.of(context, rootNavigator: true)
-                                .pop("dialog");
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(name),
-                                if (!jenMenit)
-                                  TextButton(
-                                    onPressed: () {
-                                      programmer = Programmer(name, userUid);
-                                      Navigator.of(context, rootNavigator: true)
-                                          .pop("dialog");
-                                    },
-                                    child: const Text(
-                                      "Vybrat",
-                                      style: Vzhled.textBtn,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      StreamBuilder(
-                          stream: ref.collection("programmers").snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              var docs = snapshot.data!.docs;
-
-                              return Column(
-                                children: List.generate(docs.length, (index) {
-                                  var data = docs[index].data();
-                                  return Material(
-                                    color: Vzhled.dialogColor,
-                                    child: InkWell(
-                                      splashColor: (jenMenit)
-                                          ? Colors.transparent
-                                          : null,
-                                      onTap: () {
-                                        if (jenMenit) return;
-                                        programmer = Programmer(
-                                            data["name"], data["id"]);
-                                        Navigator.of(context,
-                                                rootNavigator: true)
-                                            .pop("dialog");
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(data["name"]),
-                                            Row(
-                                              children: [
-                                                if (!jenMenit)
-                                                  TextButton(
-                                                    onPressed: () {
-                                                      programmer = Programmer(
-                                                          data["name"],
-                                                          data["id"]);
-                                                      Navigator.of(context,
-                                                              rootNavigator:
-                                                                  true)
-                                                          .pop("dialog");
-                                                    },
-                                                    child: const Text(
-                                                      "Vybrat",
-                                                      style: Vzhled.textBtn,
-                                                    ),
-                                                  ),
-                                                IconButton(
-                                                  onPressed: () {
-                                                    editId = data["id"];
-
-                                                    setState(() {
-                                                      showAddProgrammer = true;
-                                                      editing = true;
-                                                      nameCon =
-                                                          TextEditingController(
-                                                              text:
-                                                                  data["name"]);
-                                                    });
-                                                  },
-                                                  icon: const Icon(Icons.edit,
-                                                      color: Vzhled.textColor),
-                                                ),
-                                                IconButton(
-                                                  onPressed: () {
-                                                    showReallyDelete(context,
-                                                        () async {
-                                                      Navigator.of(context,
-                                                              rootNavigator:
-                                                                  true)
-                                                          .pop("dialog");
-                                                      Navigator.of(context,
-                                                              rootNavigator:
-                                                                  true)
-                                                          .pop("dialog");
-                                                      if (doc != null) {
-                                                        Navigator.of(context,
-                                                                rootNavigator:
-                                                                    true)
-                                                            .pop("dialog");
-                                                      }
-
-                                                      // deleting all records
-                                                      await ref
-                                                          .collection("records")
-                                                          .where("programmer",
-                                                              isEqualTo:
-                                                                  data["id"])
-                                                          .get()
-                                                          .then((value) {
-                                                        for (var snap
-                                                            in value.docs) {
-                                                          ref
-                                                              .collection(
-                                                                  "records")
-                                                              .doc(snap.id)
-                                                              .delete();
-                                                        }
-                                                      });
-
-                                                      // deleting
-                                                      await ref
-                                                          .collection(
-                                                              "programmers")
-                                                          .doc(data["id"])
-                                                          .delete();
-                                                    },
-                                                        doNavigatorPop: false,
-                                                        text:
-                                                            "Odstranit programátora a všechny jeho záznamy?");
-                                                  },
-                                                  icon: const Icon(Icons.delete,
-                                                      color: Vzhled.textColor),
-                                                ),
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              );
-                            }
-                            return const LoadingWidget();
-                          }),
-                      const SizedBox(height: 5),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            showAddProgrammer = true;
-                          });
-                        },
-                        child: const Text(
-                          "Přidat nového programátora",
-                          style: Vzhled.textBtn,
-                        ),
-                      ),
-                    ],
-                  );
-          },
-        ),
-      ),
-    ),
-  );
-
-  return programmer;
 }
 
 Future<List<MyCategory>> showCategoriesDialog(

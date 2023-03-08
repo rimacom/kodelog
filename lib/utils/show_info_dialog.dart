@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:denikprogramatora/okna/app.dart';
-import 'package:denikprogramatora/utils/datum.dart';
+import 'package:denikprogramatora/utils/datum_cas.dart';
 import 'package:denikprogramatora/utils/devicecontainer.dart';
 import 'package:denikprogramatora/utils/my_category.dart';
 import 'package:denikprogramatora/utils/new_record_dialog.dart';
@@ -12,12 +12,11 @@ import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 void showInfoDialog(
-    context, Map<String, dynamic> data, String originalId) async {
-  var denOd = (data["fromDate"] as Timestamp).toDate().toLocal();
-  var denDo = (data["toDate"] as Timestamp).toDate().toLocal();
+    context, Map<String, dynamic> data, String originalId, String jmeno) async {
+  var date = (data["date"] as Timestamp).toDate().toLocal();
   List<MyCategory> categories = [];
 
-  if ((data["categories"] as List).isNotEmpty) {
+  if (((data["categories"] ?? []) as List).isNotEmpty) {
     for (var category in data["categories"]) {
       await ref.collection("categories").doc(category).get().then((value) {
         var data = value.data();
@@ -30,7 +29,9 @@ void showInfoDialog(
   showDialog(
     context: context,
     builder: (_) {
-      var document = ParchmentDocument.fromJson(data["description"]);
+      var document = (data["description"] != null && data["description"] != "")
+          ? ParchmentDocument.fromJson(data["description"])
+          : (ParchmentDocument()..insert(0, data["descriptionRaw"]));
       var controller = FleatherController(document);
 
       return AlertDialog(
@@ -51,13 +52,13 @@ void showInfoDialog(
               style: Vzhled.purpleCudlik,
               onPressed: () {
                 showCreateItemDialog(context,
-                        from: denOd,
-                        to: denDo,
+                        originDate: date,
+                        timeSpent: Duration(seconds: data["time_spentRaw"]),
                         k: categories,
                         p: data["programmer"],
-                        hvezdicky: data["review"],
+                        hvezdicky: data["rating"],
                         originalId: originalId,
-                        j: data["language"]["jazyk"],
+                        j: data["programming_language"]["jazyk"],
                         doc: document)
                     .then((_) => Navigator.of(context).pop());
               },
@@ -69,7 +70,7 @@ void showInfoDialog(
           ),
         ],
         title: Text(
-          "Záznam ze dne ${denOd.dateString}",
+          "Záznam ze dne ${date.dateString}",
           style: Vzhled.dialogNadpis,
         ),
         scrollable: true,
@@ -97,9 +98,7 @@ void showInfoDialog(
                                 style: Vzhled.nadpis,
                               ),
                               Text(
-                                (Device.screenType == ScreenType.mobile)
-                                    ? "od ${denOd.dateTimeString}\ndo ${denDo.dateTimeString} (${data["codingTime"]})"
-                                    : "od ${denOd.dateTimeString} do ${denDo.dateTimeString} (${data["codingTime"]})",
+                                "${date.dateString} (${data["time_spent"]})",
                               )
                             ],
                           ),
@@ -113,9 +112,10 @@ void showInfoDialog(
                                 style: Vzhled.nadpis,
                               ),
                               Text(
-                                data["language"]["jazyk"],
+                                data["programming_language"]["jazyk"],
                                 style: TextStyle(
-                                    color: Color(data["language"]["barva"])),
+                                    color: Color(
+                                        data["programming_language"]["barva"])),
                               )
                             ],
                           ),
@@ -138,7 +138,9 @@ void showInfoDialog(
                                 style: Vzhled.nadpis,
                               ),
                               Text(
-                                data["programmerName"],
+                                FirebaseAuth
+                                        .instance.currentUser!.displayName ??
+                                    jmeno,
                               )
                             ],
                           ),
@@ -156,7 +158,7 @@ void showInfoDialog(
                                   5,
                                   (index) {
                                     return Icon(Icons.star,
-                                        color: (index + 1) <= data["review"]
+                                        color: (index + 1) <= data["rating"]
                                             ? Colors.yellow
                                             : Colors.grey);
                                   },

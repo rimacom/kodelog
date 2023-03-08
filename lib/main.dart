@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-import 'firebase_options.dart'; //TODO: Přidejte si vlastní firebase nastavení
+import 'firebase_options.dart';
 
 /*
         Copyright (C) 2022 Matyáš Caras a Richard Pavlikán
@@ -27,8 +27,7 @@ import 'firebase_options.dart'; //TODO: Přidejte si vlastní firebase nastaven�
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions
-        .currentPlatform, //TODO: Přidejte si vlastní firebase nastavení
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
 }
@@ -40,7 +39,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ResponsiveSizer(
       builder: (p0, p1, p2) => MaterialApp(
-        title: 'Deník Programátora',
+        title: 'Kodelog',
         theme: ThemeData(
           primarySwatch: Colors.blue,
           scaffoldBackgroundColor: Vzhled.backgroundColor,

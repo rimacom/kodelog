@@ -66,10 +66,15 @@ class _HlavniOknoState extends State<HlavniOkno> {
           (route) => false);
       return;
     }
-
     userUid = FirebaseAuth.instance.currentUser!.uid;
-    name = FirebaseAuth.instance.currentUser!.displayName!;
 
+    ref.get().then((value) {
+      setState(() {
+        name = FirebaseAuth.instance.currentUser!.displayName ??
+            value[
+                "name"]; // fallback když uživatel je vytvořen skrz firebase admin
+      });
+    });
     mesic = months[DateTime.now().month - 1];
 
     setState(() {
@@ -108,9 +113,9 @@ class _HlavniOknoState extends State<HlavniOkno> {
                                       onPressed: () => showAboutDialog(
                                           context: context,
                                           applicationName: "Kodelog",
-                                          applicationVersion: "1.1.0",
+                                          applicationVersion: "2.0.1",
                                           applicationLegalese:
-                                              "©️ 2023 Matyáš Caras a Richard Pavlikán,\n vydáno pod licencí AGPLv3",
+                                              "©️ 2023 Matyáš Caras a Richard Pavlikán" /*+",\n vydáno pod licencí AGPLv3"*/,
                                           children: [
                                             TextButton(
                                               child: const Text("Zdrojový kód"),
@@ -144,8 +149,8 @@ class _HlavniOknoState extends State<HlavniOkno> {
                               ),
                               MyContainer(
                                 width: (Device.screenType == ScreenType.mobile)
-                                    ? 95.w
-                                    : 45.w,
+                                    ? 90.w
+                                    : 40.w,
                                 child: DeviceContainer(
                                   mainAxisAlignmentDesktop:
                                       MainAxisAlignment.spaceBetween,
@@ -220,19 +225,12 @@ class _HlavniOknoState extends State<HlavniOkno> {
                                         if (snapshot.hasData) {
                                           var docs = snapshot.data!.docs;
                                           var jenMesic = docs
-                                              .where((d) =>
-                                                  DateTime.parse(
-                                                          "$year-${(mesic.position + 1 < 10) ? "0${mesic.position + 1}" : mesic.position + 1}-${selectedDay < 10 ? "0$selectedDay" : selectedDay} 00:00:00")
-                                                      .isBefore(
-                                                          (d.data()["toDate"]
-                                                                  as Timestamp)
-                                                              .toDate()) &&
-                                                  DateTime.parse(
-                                                          "$year-${(mesic.position + 1 < 10) ? "0${mesic.position + 1}" : mesic.position + 1}-${selectedDay < 10 ? "0$selectedDay" : selectedDay} 23:59:59")
-                                                      .isAfter(
-                                                          (d.data()["fromDate"]
-                                                                  as Timestamp)
-                                                              .toDate()))
+                                              .where((d) => DateTime.parse(
+                                                      "$year-${(mesic.position + 1 < 10) ? "0${mesic.position + 1}" : mesic.position + 1}-${selectedDay < 10 ? "0$selectedDay" : selectedDay} 00:00:00")
+                                                  .isAtSameMomentAs(
+                                                      (d.data()["date"]
+                                                              as Timestamp)
+                                                          .toDate()))
                                               .toList() // vybere pouze záznamy, které probíhají ve vybraný den
                                             ..sort(
                                               razeni[vybraneRazeni],
@@ -262,9 +260,9 @@ class _HlavniOknoState extends State<HlavniOkno> {
                                                               .all(
                                                         Radius.circular(4),
                                                       ),
-                                                      color: Color(
-                                                          data["language"]
-                                                              ["barva"]),
+                                                      color: Color(data[
+                                                              "programming_language"]
+                                                          ["barva"]),
                                                     ),
                                                     child: Material(
                                                       color: Colors.transparent,
@@ -274,7 +272,8 @@ class _HlavniOknoState extends State<HlavniOkno> {
                                                                 context,
                                                                 data,
                                                                 jenMesic[index]
-                                                                    .id),
+                                                                    .id,
+                                                                name),
                                                         child: Padding(
                                                           padding:
                                                               const EdgeInsets
@@ -282,12 +281,14 @@ class _HlavniOknoState extends State<HlavniOkno> {
                                                           child: Row(
                                                             children: [
                                                               Text(
-                                                                  "${(data["fromDate"] as Timestamp).toDate().hour < 10 ? "0${(data["fromDate"] as Timestamp).toDate().hour}" : (data["fromDate"] as Timestamp).toDate().hour}:${(data["fromDate"] as Timestamp).toDate().minute < 10 ? "0${(data["fromDate"] as Timestamp).toDate().minute}" : (data["fromDate"] as Timestamp).toDate().minute}"),
-                                                              const SizedBox(
-                                                                width: 20,
+                                                                "${data["programming_language"]["jazyk"]}",
+                                                                style: const TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold),
                                                               ),
                                                               Text(
-                                                                  " - ${data["language"]["jazyk"]}")
+                                                                  " - ${data["time_spent"]}")
                                                             ],
                                                           ),
                                                         ),
@@ -308,7 +309,10 @@ class _HlavniOknoState extends State<HlavniOkno> {
                                       height: 50,
                                     ),
                                   SizedBox(
-                                    width: 45.w,
+                                    width:
+                                        (Device.screenType == ScreenType.mobile)
+                                            ? 60.w
+                                            : 40.w,
                                     child: Column(
                                       children: [
                                         DeviceContainer(
@@ -504,9 +508,10 @@ class _HlavniOknoState extends State<HlavniOkno> {
                 : 5),
         (index) {
           return Row(
-            mainAxisAlignment: (Device.screenType == ScreenType.mobile)
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            // (Device.screenType == ScreenType.mobile)
+            //     ? MainAxisAlignment.center
+            //     : MainAxisAlignment.start,
             children: List.generate(
               (Device.screenType == ScreenType.mobile) ? 3 : 7,
               (index) {
